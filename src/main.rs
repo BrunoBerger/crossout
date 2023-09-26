@@ -6,7 +6,6 @@ use iced::{Application, Command, Element, Length, Settings, Theme};
 const OFFSET: usize = 9;
 // const MASKED_STYLE = style
 
-
 pub fn main() -> iced::Result {
     MyApp::run(Settings::default())
 }
@@ -14,50 +13,60 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct MyApp {
     default_checkbox: bool,
-    unused_counter: u32,
     numbers: Vec<u8>,
-    mask: Vec<bool>,
+    already_used: Vec<bool>,
     selection_1: i64, // negative if no selection
 }
 impl MyApp {
     fn new() -> Self {
-        MyApp { 
-            default_checkbox: false, 
-            numbers: vec![
+        // numbers: (1..=9).chain(11..=19).collect::<Vec<_>>(), // eh
+        // let start_set = vec![1,2,3,4,5,6,7,8,9];
+        let start_set = vec![
                 1,2,3,4,5,6,7,8,9,
                 1,1,1,2,1,3,1,4,1,
-                5,1,6,1,7,1,8,1,9], 
-            // numbers: (1..=9).chain(11..=19).collect::<Vec<_>>(), // eh
-            mask: vec![false; 27],
-            unused_counter: 0,
+                5,1,6,1,7,1,8,1,9];
+        MyApp { 
+            default_checkbox: false, 
+            already_used: vec![false; start_set.len()],
+            numbers: start_set, 
             selection_1: -1,
         }
     }
     fn valid_move(&self, selection_2: usize) -> bool {
+
+        let val1 = self.numbers[self.selection_1 as usize];
+        let val2 = self.numbers[selection_2];
+        if val1 + val2 != 10 && val1 != val2 {
+            return false;
+        }
+
+        
         let idx1 = std::cmp::min(self.selection_1 as usize, selection_2) as i64;
         let idx2 = std::cmp::max(self.selection_1 as usize, selection_2) as i64;
 
-        let mut adjacent_blocked = false;
-        let mut vertical_blocked = false;
+        let mut adjacent_valid = true;
+        let mut vertical_valid = (idx2-idx1) % OFFSET as i64 == 0;
 
-        for next_idx in idx1..idx2 {
-            // println!("{next_number}")
-            if self.mask[next_idx as usize] == false {
-                adjacent_blocked = true;
+        // println!("1:{idx1} 2:{idx2}");
+        for next_idx in idx1+1..idx2 {
+            // println!("nextidx: {next_idx}");
+            if self.already_used[next_idx as usize] == false {
+                adjacent_valid = false;
             }
-            if (next_idx-idx1) % OFFSET as i64 == OFFSET as i64 - 1 {
-            // if (next_idx-idx1) % 9 == 0 {
-                if self.mask[next_idx as usize] == false {
-                    vertical_blocked = true;
+            if (next_idx-idx1) % OFFSET as i64 == 0 as i64 {
+                if self.already_used[next_idx as usize] == false {
+                    vertical_valid = false;
                 }
             }
         }
-        println!("adjacent blocked: {adjacent_blocked}");
-        println!("vertical blocked: {vertical_blocked}");
+        if adjacent_valid || vertical_valid {
+            return true
+        }
+        
         //Check start-end edge case
-
-
-        true
+        let start = &self.already_used[0..idx1 as usize];
+        let end = &self.already_used[(idx2+1) as usize .. ];
+        [start, end].concat().iter().all(|&i| i == true)
     }
 }
 
@@ -94,23 +103,21 @@ impl Application for MyApp {
             Message::NewGame => println!("New Game"),
             Message::FinishedTurn => println!("Turn over"),
             Message::NumberPressed(button_idx) => {
-                println!("Pressed button {button_idx}");
+                // println!("Pressed button {button_idx}");
                 // If no selection is yet made
                 if self.selection_1 < 0 {
                     self.selection_1 = button_idx as i64;
-                    self.mask[self.selection_1 as usize] = true
                 } 
                 else {
                     // deselect if clicked again
                     if button_idx as i64 == self.selection_1 {
                         // TODO this cant be reached as button is deactivated and cant be pressed again
-                        self.mask[self.selection_1 as usize] = false;
+                        self.already_used[self.selection_1 as usize] = false;
                         self.selection_1 = -1;
-                        println!("UNSELECTED")
                     } // if 2 buttons are selected
                     else if self.valid_move(button_idx) {
-                        self.mask[button_idx] = true;
-                        self.mask[self.selection_1 as usize] = true;
+                        self.already_used[button_idx] = true;
+                        self.already_used[self.selection_1 as usize] = true;
                         self.selection_1 = -1;
                     }
                 }
@@ -131,8 +138,12 @@ impl Application for MyApp {
         for (i, n) in self.numbers.iter().enumerate() {
             let button_content = widget::text(n);
             let mut new_button = button(button_content);
-            if self.mask[i] == false {
+
+            if self.already_used[i] == false {
                 new_button = new_button.on_press(Message::NumberPressed(i));
+            }
+            if i as i64 == self.selection_1 {
+                new_button = new_button.style(iced::theme::Button::Positive);
             }
 
             new_row = new_row.push(new_button);
