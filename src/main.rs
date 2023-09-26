@@ -20,11 +20,11 @@ struct MyApp {
 impl MyApp {
     fn new() -> Self {
         // numbers: (1..=9).chain(11..=19).collect::<Vec<_>>(), // eh
-        // let start_set = vec![1,2,3,4,5,6,7,8,9];
         let start_set = vec![
-                1,2,3,4,5,6,7,8,9,
-                1,1,1,2,1,3,1,4,1,
-                5,1,6,1,7,1,8,1,9];
+            1,2,3,4,5,6,7,8,9,
+            1,1,1,2,1,3,1,4,1,
+            5,1,6,1,7,1,8,1,9];
+        // let start_set = vec![1,2,3,4,5,6,7,8,9];
         MyApp { 
             default_checkbox: false, 
             already_used: vec![false; start_set.len()],
@@ -40,7 +40,7 @@ impl MyApp {
             return false;
         }
 
-        
+
         let idx1 = std::cmp::min(self.selection_1 as usize, selection_2) as i64;
         let idx2 = std::cmp::max(self.selection_1 as usize, selection_2) as i64;
 
@@ -101,9 +101,16 @@ impl Application for MyApp {
         match message {
             Message::DefaultChecked(value) => self.default_checkbox = value,
             Message::NewGame => println!("New Game"),
-            Message::FinishedTurn => println!("Turn over"),
+            Message::FinishedTurn => {
+                // yeah idk
+                let mut remaning_numbers: Vec<_> = self.already_used.iter().zip(self.numbers.iter())
+                    .filter_map(|(used, number)| if ! *used {Some(*number)} else {None})
+                    .collect();
+                let new_len = self.already_used.len() + remaning_numbers.len();
+                self.already_used.resize(new_len, false);
+                self.numbers.append(&mut remaning_numbers);
+            },
             Message::NumberPressed(button_idx) => {
-                // println!("Pressed button {button_idx}");
                 // If no selection is yet made
                 if self.selection_1 < 0 {
                     self.selection_1 = button_idx as i64;
