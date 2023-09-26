@@ -1,13 +1,26 @@
 use iced::executor;
 use iced::widget;
 use iced::widget::{checkbox, column, container, button, text};
-use iced::{Application, Command, Element, Length, Settings, Theme};
+use iced::{Application, Color, Command, Element, Length, Theme};
 
 const OFFSET: usize = 9;
 // const MASKED_STYLE = style
+const START_SET: [u8; 27] = [
+    1,2,3,4,5,6,7,8,9,
+    1,1,1,2,1,3,1,4,1,
+    5,1,6,1,7,1,8,1,9];
 
 pub fn main() -> iced::Result {
-    MyApp::run(Settings::default())
+    let settings = iced::Settings {
+        window: iced::window::Settings {
+            size: (300, 600),
+            ..Default::default()
+        },
+        antialiasing: true,
+        ..Default::default()
+    };
+    MyApp::run(settings)
+    // MyApp::run(Settings::default())
 }
 
 #[derive(Default)]
@@ -20,18 +33,17 @@ struct MyApp {
 impl MyApp {
     fn new() -> Self {
         // numbers: (1..=9).chain(11..=19).collect::<Vec<_>>(), // eh
-        let start_set = vec![
-            1,2,3,4,5,6,7,8,9,
-            1,1,1,2,1,3,1,4,1,
-            5,1,6,1,7,1,8,1,9];
         // let start_set = vec![1,2,3,4,5,6,7,8,9];
         MyApp { 
             default_checkbox: false, 
-            already_used: vec![false; start_set.len()],
-            numbers: start_set, 
+            already_used: vec![false; START_SET.len()],
+            numbers: START_SET.to_vec(), 
             selection_1: -1,
         }
     }
+    // fn reset(mut self) {
+    //     self = MyApp::new();
+    // }
     fn valid_move(&self, selection_2: usize) -> bool {
 
         let val1 = self.numbers[self.selection_1 as usize];
@@ -78,6 +90,16 @@ enum Message {
     NumberPressed(usize),
 }
 
+// struct NumberButtonSyle {
+//     color: Color
+// }
+// impl button::StyleSheet for NumberButtonSyle {
+//     fn active(&self, style: &Self::Style) -> button::Appearance {
+        
+//     }
+// }
+
+
 impl Application for MyApp {
     type Message = Message;
     type Flags = ();
@@ -100,7 +122,9 @@ impl Application for MyApp {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::DefaultChecked(value) => self.default_checkbox = value,
-            Message::NewGame => println!("New Game"),
+            Message::NewGame => {
+                *self = MyApp::new();
+            },
             Message::FinishedTurn => {
                 // yeah idk
                 let mut remaning_numbers: Vec<_> = self.already_used.iter().zip(self.numbers.iter())
@@ -144,7 +168,9 @@ impl Application for MyApp {
         
         for (i, n) in self.numbers.iter().enumerate() {
             let button_content = widget::text(n);
-            let mut new_button = button(button_content);
+            let mut new_button = button(button_content)
+                .width(30).height(30)
+                ;
 
             if self.already_used[i] == false {
                 new_button = new_button.on_press(Message::NumberPressed(i));
@@ -166,17 +192,17 @@ impl Application for MyApp {
 
 
         let collumn = column![
-            default_checkbox,
+            widget::row![default_checkbox, text(self.selection_1).size(16)].spacing(10),
             widget::row![new_game_button, widget::Space::with_width(10), finished],
-            number_col,
-            text(self.selection_1).size(20),
+            widget::scrollable(number_col),
             ].spacing(10);
 
         container(collumn)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
-            .center_y()
+            // .center_y()
+            .padding(10)
             .into()
     }
 }
