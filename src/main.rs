@@ -1,4 +1,5 @@
 use iced::executor;
+use iced::theme;
 use iced::widget;
 use iced::widget::{checkbox, column, container, button, text};
 use iced::{Application, Color, Command, Element, Length, Theme};
@@ -41,9 +42,6 @@ impl MyApp {
             selection_1: -1,
         }
     }
-    // fn reset(mut self) {
-    //     self = MyApp::new();
-    // }
     fn valid_move(&self, selection_2: usize) -> bool {
 
         let val1 = self.numbers[self.selection_1 as usize];
@@ -95,10 +93,12 @@ enum Message {
 // }
 // impl button::StyleSheet for NumberButtonSyle {
 //     fn active(&self, style: &Self::Style) -> button::Appearance {
-        
+//         button::Appearance {
+//             background: Some(iced::Background::Color(self.color)),
+//             ..Default::default()
+//         }
 //     }
 // }
-
 
 impl Application for MyApp {
     type Message = Message;
@@ -142,7 +142,6 @@ impl Application for MyApp {
                 else {
                     // deselect if clicked again
                     if button_idx as i64 == self.selection_1 {
-                        // TODO this cant be reached as button is deactivated and cant be pressed again
                         self.already_used[self.selection_1 as usize] = false;
                         self.selection_1 = -1;
                     } // if 2 buttons are selected
@@ -163,26 +162,28 @@ impl Application for MyApp {
         let new_game_button = button("New Game").on_press(Message::NewGame);
         let finished = button("End Turn").on_press(Message::FinishedTurn);
 
-        let mut number_col = column![];
-        let mut new_row = widget::Row::new();
+        let h_spacing = 1;
+        let v_spacing = h_spacing;
+        let mut number_col = column![].spacing(v_spacing);
+        let mut new_row = widget::Row::new().spacing(h_spacing);
         
         for (i, n) in self.numbers.iter().enumerate() {
             let button_content = widget::text(n);
             let mut new_button = button(button_content)
-                .width(30).height(30)
+                // .width(25).height(25)
                 ;
 
             if self.already_used[i] == false {
                 new_button = new_button.on_press(Message::NumberPressed(i));
             }
             if i as i64 == self.selection_1 {
-                new_button = new_button.style(iced::theme::Button::Positive);
+                new_button = new_button.style(theme::Button::Positive);
             }
 
             new_row = new_row.push(new_button);
             if i % OFFSET == OFFSET-1 {
                 number_col = number_col.push(new_row);
-                new_row = widget::Row::new();
+                new_row = widget::Row::new().spacing(h_spacing);
             }
         }
         // add unfinished row. TODO: see if adding empty row is bad
