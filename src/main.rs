@@ -1,8 +1,8 @@
 use iced::executor;
 use iced::theme;
 use iced::widget;
-use iced::widget::{checkbox, column, container, button, text};
-use iced::{Application, Color, Command, Element, Length, Theme};
+use iced::widget::{checkbox, column, container, button, text, row};
+use iced::{Application, Command, Element, Length, Theme};
 
 const OFFSET: usize = 9;
 // const MASKED_STYLE = style
@@ -14,10 +14,10 @@ const START_SET: [u8; 27] = [
 pub fn main() -> iced::Result {
     let settings = iced::Settings {
         window: iced::window::Settings {
-            size: (300, 600),
+            // size: (300, 600),
             ..Default::default()
         },
-        antialiasing: true,
+        // antialiasing: true,
         ..Default::default()
     };
     MyApp::run(settings)
@@ -26,7 +26,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct MyApp {
-    default_checkbox: bool,
+    square_cb_val: bool,
     numbers: Vec<u8>,
     already_used: Vec<bool>,
     selection_1: i64, // negative if no selection
@@ -36,7 +36,7 @@ impl MyApp {
         // numbers: (1..=9).chain(11..=19).collect::<Vec<_>>(), // eh
         // let start_set = vec![1,2,3,4,5,6,7,8,9];
         MyApp { 
-            default_checkbox: false, 
+            square_cb_val: false, 
             already_used: vec![false; START_SET.len()],
             numbers: START_SET.to_vec(), 
             selection_1: -1,
@@ -88,17 +88,6 @@ enum Message {
     NumberPressed(usize),
 }
 
-// struct NumberButtonSyle {
-//     color: Color
-// }
-// impl button::StyleSheet for NumberButtonSyle {
-//     fn active(&self, style: &Self::Style) -> button::Appearance {
-//         button::Appearance {
-//             background: Some(iced::Background::Color(self.color)),
-//             ..Default::default()
-//         }
-//     }
-// }
 
 impl Application for MyApp {
     type Message = Message;
@@ -121,7 +110,7 @@ impl Application for MyApp {
     }
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::DefaultChecked(value) => self.default_checkbox = value,
+            Message::DefaultChecked(value) => self.square_cb_val = value,
             Message::NewGame => {
                 *self = MyApp::new();
             },
@@ -158,20 +147,25 @@ impl Application for MyApp {
     }
 
     fn view(&self) -> Element<Message> {
-        let default_checkbox = checkbox("tmp", self.default_checkbox, Message::DefaultChecked);
+        let square_cb = checkbox("Squares", self.square_cb_val, Message::DefaultChecked);
         let new_game_button = button("New Game").on_press(Message::NewGame);
         let finished = button("End Turn").on_press(Message::FinishedTurn);
 
         let h_spacing = 1;
         let v_spacing = h_spacing;
+        let height = 27;
         let mut number_col = column![].spacing(v_spacing);
-        let mut new_row = widget::Row::new().spacing(h_spacing);
+        let mut new_row = row![].spacing(h_spacing);
         
         for (i, n) in self.numbers.iter().enumerate() {
-            let button_content = widget::text(n);
+            let button_content = widget::text(n)
+                .vertical_alignment(iced::alignment::Vertical::Center)
+                .horizontal_alignment(iced::alignment::Horizontal::Center);
             let mut new_button = button(button_content)
-                // .width(25).height(25)
-                ;
+                .height(height);
+            if self.square_cb_val {
+                new_button = new_button.width(height);
+            }
 
             if self.already_used[i] == false {
                 new_button = new_button.on_press(Message::NumberPressed(i));
@@ -183,7 +177,7 @@ impl Application for MyApp {
             new_row = new_row.push(new_button);
             if i % OFFSET == OFFSET-1 {
                 number_col = number_col.push(new_row);
-                new_row = widget::Row::new().spacing(h_spacing);
+                new_row = row![].spacing(h_spacing);
             }
         }
         // add unfinished row. TODO: see if adding empty row is bad
@@ -191,14 +185,12 @@ impl Application for MyApp {
             number_col = number_col.push(new_row);
         }
 
-
-        let collumn = column![
-            widget::row![default_checkbox, text(self.selection_1).size(16)].spacing(10),
-            widget::row![new_game_button, widget::Space::with_width(10), finished],
-            widget::scrollable(number_col),
+        let main_field = widget::scrollable(number_col.padding(15));
+        let side_content= column![
+            row![square_cb, text(self.selection_1).size(16)].spacing(10),
+            row![new_game_button, widget::Space::with_width(10), finished],
             ].spacing(10);
-
-        container(collumn)
+        container(row![side_content, main_field])
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
