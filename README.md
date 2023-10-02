@@ -2,6 +2,8 @@
 Digitised version of a paper&pen game from my childhood,
 to learn rust GUIs.
 
+![Windows Binary here](https://github.com/BrunoBerger/crossout/releases/latest)
+
 Still searching for a better name...
 
 ### Rules:
@@ -12,3 +14,4 @@ Still searching for a better name...
 - If no more pairs can be found, press "End Turn" to add all remaing numbers again
 #
 ![PreviewImage](assets/preview.png)
+ 
